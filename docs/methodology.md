@@ -172,7 +172,7 @@ strict JSON) with:
 - the root seed and, per fold, model and seed, the initialisation and batch-order seeds used,
   with the train, validation and test row indices;
 - the Python, platform and package versions (PennyLane, pennylane-lightning, torch, NumPy,
-  scikit-learn, SciPy), and the PennyLane device each circuit actually ran on, since the
+  scikit-learn, SciPy, autoray), and the PennyLane device each circuit actually ran on, since the
   device factory can fall back;
 - a SHA-256 fingerprint of each dataset (not the data), tuning choices, noise results and the
   metrics.

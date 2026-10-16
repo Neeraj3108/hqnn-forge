@@ -176,8 +176,8 @@ computed once and stored under ``--cache-dir``, keyed by the SHA-256
 * ``environment``: the entries of :func:`hqnn_forge.experiment.environment`
   that :func:`hqnn_forge.experiment.compare_environment` compares, i.e. the
   Python version and implementation, the version of ``hqnn_forge`` and those
-  of PennyLane, pennylane-lightning, torch, NumPy, scikit-learn and SciPy
-  (:func:`key_environment`);
+  of PennyLane, pennylane-lightning, torch, NumPy, scikit-learn, SciPy and
+  autoray (:func:`key_environment`);
 * ``code``: a SHA-256 over the name and content of every ``*.py`` file of
   the installed ``hqnn_forge`` package and of this script
   (:func:`code_fingerprint`).
@@ -201,10 +201,10 @@ refused; ``--no-cache`` runs there.  Entries of other versions stay in the
 directory under their own names and are not removed (#575).
 
 What the key does not see: the platform string (as ``compare_environment``),
-the packages ``environment()`` does not record, such as a dependency of
-PennyLane or the BLAS behind NumPy, and a change of a recorded package that
-keeps its version string (an editable or git install of a development
-version).  Every entry therefore also stores the
+the packages ``environment()`` does not record, such as the BLAS behind
+NumPy and torch, and a change of a recorded package that keeps its version
+string (an editable or git install of a development version).  Every entry
+therefore also stores the
 full ``environment()`` it was computed in, and each line of an arm with a
 fixed map records it as ``feature_environment``, beside the ``environment``
 of the run that wrote the line.  The two differ only on a hit from another

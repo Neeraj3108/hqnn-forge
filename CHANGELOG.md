@@ -505,6 +505,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dataset-selection, and training options (#563)
 
 ### Fixed
+- `RECORDED_PACKAGES` in `hqnn_forge.experiment` now records `autoray`, so changes to the
+  underlying array math dependency used by PennyLane's `default.qubit` simulator in arm D
+  are captured in experiment records and produce a cache miss in
+  `examples/benchmark_rydberg_features.py` instead of a silent cache hit (#542)
 - A readout error `(p01, p10)` on a sampled layer (`shots=`, or inside `apply_shots`) flips
   each shot, drawn from the device's seeded generator, instead of rescaling the estimate: the
   output now has the shot noise `(1 − ⟨Z'⟩²)/shots` of a device with that error, where its

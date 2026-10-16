@@ -17,9 +17,9 @@ not to reproduce a result.  A record written by :func:`save_record` (or by
 * **folds** -- the train, validation and test row indices of every fold, and
   the threshold, MCC, epochs and seconds per model;
 * **environment** -- Python, platform, ``hqnn_forge`` and the versions of
-  PennyLane, pennylane-lightning, torch, NumPy, scikit-learn and SciPy, and
-  per fold the PennyLane device the circuit really ran on, since the device
-  factory falls back silently apart from a warning;
+  PennyLane, pennylane-lightning, torch, NumPy, scikit-learn, SciPy and
+  autoray, and per fold the PennyLane device the circuit really ran on, since
+  the device factory falls back silently apart from a warning;
 * **datasets** -- size, positives and a SHA-256 of the data, not the data;
 * **metrics** -- the per-dataset, per-model rows of the result.
 
@@ -63,6 +63,7 @@ RECORDED_PACKAGES: tuple[str, ...] = (
     "numpy",
     "scikit-learn",
     "scipy",
+    "autoray",
 )
 
 #: The entries of :func:`environment` besides ``packages`` that

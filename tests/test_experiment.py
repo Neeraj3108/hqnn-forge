@@ -172,6 +172,7 @@ class TestContents:
         env = record["environment"]
         assert env["hqnn_forge"] == hqnn_forge.__version__
         assert env["packages"]["torch"] == importlib.metadata.version("torch")
+        assert env["packages"]["autoray"] == importlib.metadata.version("autoray")
         assert set(env["packages"]) == set(RECORDED_PACKAGES)
         X, y = _data(0)
         assert record["datasets"]["first"] == {
