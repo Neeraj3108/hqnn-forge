@@ -6,6 +6,7 @@ import importlib.util
 import io
 import tarfile
 import zipfile
+from collections.abc import Mapping
 from pathlib import Path
 from types import ModuleType
 
@@ -26,7 +27,7 @@ def _import_script() -> ModuleType:
 checker = _import_script()
 
 
-def _make_wheel(path: Path, files: dict[str, str | bytes]) -> None:
+def _make_wheel(path: Path, files: Mapping[str, str | bytes]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, "w") as z:
         for name, data in files.items():
@@ -36,7 +37,7 @@ def _make_wheel(path: Path, files: dict[str, str | bytes]) -> None:
                 z.writestr(name, data)
 
 
-def _make_sdist(path: Path, files: dict[str, str | bytes]) -> None:
+def _make_sdist(path: Path, files: Mapping[str, str | bytes]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with tarfile.open(path, "w:gz") as t:
         for name, data in files.items():

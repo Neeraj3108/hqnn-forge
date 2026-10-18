@@ -315,4 +315,4 @@ jobs:
         done
 
     - name: Compare distribution contents and metadata
-      run: python .github/scripts/check_dist_contents.py dist/newest dist/floor
+      run: uv run --no-project --with packaging python .github/scripts/check_dist_contents.py dist/newest dist/floor
