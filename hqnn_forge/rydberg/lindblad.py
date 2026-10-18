@@ -367,11 +367,15 @@ def _populations_to_features(
     """
     Features (atoms and optionally pairs) from computational-basis populations.
 
+    The caller is expected to have validated the inputs: a real floating or
+    integer tensor of shape ``(2^N,)`` or ``(batch, 2^N)`` for 1 to
+    ``MAX_ATOMS`` atoms.
+
     Parameters
     ----------
     populations:
         Tensor of shape ``(2^N,)`` or ``(batch, 2^N)``, with basis states ordered
-        by atom 0 as the most significant bit.  Real float or integer tensor.
+        by atom 0 as the most significant bit.
     pairs:
         Whether to append the ``N(N-1)/2`` pair correlations.
 
@@ -382,22 +386,7 @@ def _populations_to_features(
         or ``(batch, N + N(N-1)/2)`` with the same dtype and on the same device
         as ``populations``.
     """
-    if not isinstance(populations, torch.Tensor):
-        raise TypeError(f"populations must be a torch.Tensor; got {type(populations).__name__}.")
-    if populations.is_complex() or populations.dtype == torch.bool:
-        raise TypeError(
-            f"populations must be a real floating or integer tensor; got dtype {populations.dtype}."
-        )
-    dim = populations.shape[-1] if populations.ndim in (1, 2) else 0
-    n = dim.bit_length() - 1
-    if populations.ndim not in (1, 2) or dim != 2**n or not 1 <= n <= MAX_ATOMS:
-        raise ValueError(
-            f"populations must have shape (2^n,) or (batch, 2^n) for 1 to {MAX_ATOMS} atoms; "
-            f"got shape {tuple(populations.shape)}."
-        )
-    if populations.is_floating_point() and not bool(torch.isfinite(populations).all()):
-        raise ValueError("populations must be finite; got a NaN or an infinity.")
-
+    n = populations.shape[-1].bit_length() - 1
     bits = _bits(n, populations.device).to(populations.dtype)
     singles = populations @ bits
     if not pairs:

@@ -543,11 +543,12 @@ class RydbergFeatureMap:
 
         The outcome probabilities are the diagonal of ρ.  ``counts[k]`` is how
         often basis state ``k`` was drawn.  The integer counts of each feature
-        are summed first, ``counts @ bits`` and the same for the pairs, and
-        divided by ``shots`` once without building a dense diagonal state:
-        ``(Σ_k b_i(k) counts[k]) / shots`` is the mean of ``b_i`` over the
-        bitstrings.  The samples are drawn one at a time, in order, so the
-        generator's stream does not depend on how they are chunked.
+        are summed first, ``counts @ bits`` and the same for the pairs, converted
+        to ``float64``, and divided by ``shots`` once without building a dense
+        diagonal state: the estimates are the correctly rounded value of
+        ``count / S``, the same bit for bit in every chunk as long as the drawn
+        bitstrings are the same.  The samples are drawn one at a time, in order,
+        so the generator's stream does not depend on how they are chunked.
         """
         # A population can come out of the splitting as −1e-17; a probability cannot.
         populations = rho.diagonal(dim1=-2, dim2=-1).real.clamp(min=0.0).to(generator.device)
@@ -557,8 +558,8 @@ class RydbergFeatureMap:
                 populations[sample], shots, replacement=True, generator=generator
             )
             counts[sample] = torch.bincount(outcomes, minlength=populations.shape[1])
-        features = _populations_to_features(counts, pairs=self._correlations)
-        estimates = features.to(torch.float64) / shots
+        features = _populations_to_features(counts.to(torch.float64), pairs=self._correlations)
+        estimates = features / shots
         return estimates.to(rho.device)
 
     @torch.no_grad()
@@ -635,9 +636,9 @@ class RydbergFeatureMap:
           2000 steps), the size of the rounding error either result has
           anyway, and orders of magnitude below the splitting error.  The
           same holds for :meth:`states`.  With ``shots`` the drawn bitstrings
-          were the same in every chunking tried, and the estimates are exact
-          multiples of ``1/S`` and the same bit for bit in every chunking, as
-          long as the drawn bitstrings are the same.  For bit-for-bit
+          were the same in every chunking tried, and the estimates are the
+          correctly rounded value of ``count / S``, the same bit for bit in
+          every chunking as long as the drawn bitstrings are the same.  For bit-for-bit
           repeatable features without shots, keep ``chunk_size`` (and the
           machine) fixed.
         * **Precision.**  ``X`` is converted to ``float64`` whatever its

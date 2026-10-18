@@ -671,7 +671,8 @@ class TestChunks:
 
         ``estimate · shots`` is the number of bitstrings with the atom (or the
         pair) excited, an integer: the counts are the same in every chunking,
-        and the estimates equal to the rounding of the last division and sum.
+        and the estimates are the correctly rounded value of ``count / S``,
+        the same bit for bit in every chunking.
         """
         shots = 200
         feature_map = RydbergFeatureMap(
@@ -690,56 +691,6 @@ class TestChunks:
                 x, shots=shots, generator=torch.Generator().manual_seed(11), chunk_size=chunk_size
             )
             assert torch.equal(chunked, whole)
-
-    @pytest.mark.parametrize("n_atoms", [5, 6])
-    @pytest.mark.parametrize("chunk_size", [1, 2, 3, 4])
-    def test_bit_for_bit_chunked_versus_unchunked_predetermined_outcomes(
-        self, n_atoms: int, chunk_size: int, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """
-        When measurement outcomes are predetermined, chunked and unchunked shot
-        estimates are equal bit for bit at 5 and 6 atoms.
-        """
-        n_samples = 6
-        shots = 50
-        dim = 2**n_atoms
-        gen = torch.Generator().manual_seed(123)
-        predetermined = [torch.randint(0, dim, (shots,), generator=gen) for _ in range(n_samples)]
-        sample_call_count = 0
-
-        def mock_multinomial(
-            input: torch.Tensor,
-            num_samples: int,
-            replacement: bool = True,
-            generator: Any = None,
-        ) -> torch.Tensor:
-            nonlocal sample_call_count
-            res = predetermined[sample_call_count % n_samples]
-            sample_call_count += 1
-            return res
-
-        monkeypatch.setattr(torch, "multinomial", mock_multinomial)
-
-        feature_map = RydbergFeatureMap(
-            chain(n_atoms),
-            PulseEncoding(n_atoms, omega=OMEGA),
-            c6=DEFAULT_C6,
-            gamma=0.0,
-            correlations=True,
-        )
-        x = inputs(n_samples, n_atoms, seed=1)
-
-        sample_call_count = 0
-        whole = feature_map.transform(
-            x, shots=shots, generator=torch.Generator(), chunk_size=n_samples
-        )
-
-        sample_call_count = 0
-        chunked = feature_map.transform(
-            x, shots=shots, generator=torch.Generator(), chunk_size=chunk_size
-        )
-
-        assert torch.equal(chunked, whole)
 
     @pytest.mark.parametrize("method", ["transform", "states"])
     def test_the_solver_sees_at_most_chunk_size_samples(
@@ -924,6 +875,39 @@ class TestShots:
             frequencies[sample] = c.to(torch.float64) / shots
         dense_reference = readout(torch.diag_embed(frequencies), pairs=feature_map.correlations)
 
+        assert torch.equal((estimates * shots).round(), (dense_reference * shots).round())
+        assert (estimates - dense_reference).abs().max().item() <= 1e-12
+
+    @pytest.mark.parametrize("n_atoms", [5, 6])
+    @pytest.mark.parametrize("shots", [50, 200])
+    def test_seeded_compatibility_against_dense_reference(self, n_atoms: int, shots: int) -> None:
+        """
+        Shot estimates and dense reference match rounded to the nearest count.
+
+        With the same seed and generator, ``(estimates * shots).round()`` equals
+        ``(dense_reference * shots).round()`` bit for bit at 5 and 6 atoms.
+        """
+        seed = 42
+        feature_map = self.build(n_atoms)
+        x = inputs(4, n_atoms, seed=seed)
+
+        gen1 = torch.Generator().manual_seed(seed)
+        estimates = feature_map.transform(x, shots=shots, generator=gen1)
+
+        gen2 = torch.Generator().manual_seed(seed)
+        delta = feature_map._encoding.detunings(x)
+        rho = feature_map._evolve(delta)
+        populations = rho.diagonal(dim1=-2, dim2=-1).real.clamp(min=0.0).to(gen2.device)
+        frequencies = torch.empty_like(populations)
+        for sample in range(populations.shape[0]):
+            outcomes = torch.multinomial(
+                populations[sample], shots, replacement=True, generator=gen2
+            )
+            c = torch.bincount(outcomes, minlength=populations.shape[1])
+            frequencies[sample] = c.to(torch.float64) / shots
+        dense_reference = readout(torch.diag_embed(frequencies), pairs=feature_map.correlations)
+
+        assert torch.equal((estimates * shots).round(), (dense_reference * shots).round())
         assert (estimates - dense_reference).abs().max().item() <= 1e-12
 
     def test_the_estimates_converge_to_the_exact_features(self) -> None:
