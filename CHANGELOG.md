@@ -378,7 +378,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `RydbergFeatureMap` estimates finite-shot features directly from integer measurement counts without
   allocating a dense diagonal state tensor; shot estimates are the correctly rounded value of
-  `count / S`, guaranteeing bit-for-bit identical results across chunk sizes for the same drawn bitstrings (#535)
+  `count / S`, guaranteeing bit-for-bit identical results across chunk sizes for the same drawn bitstrings (#617)
 - `rydberg_hamiltonian` allocates the dense Hamiltonian directly as `complex128`, reducing peak
   memory usage during construction by avoiding an intermediate `float64` matrix (#591)
 - `shot_sweep` evaluates and scores each exact (`shots=None`) reference once, repeating

@@ -52,10 +52,10 @@ def checked_evolve(
     assert rho.shape == hamiltonian.shape
     trace = rho.diagonal(dim1=-2, dim2=-1).sum(dim=-1)
     # U = V e^(−iE dt) V† is unitary to rounding only, and the same U is applied
-    # in every step, so the trace drifts by up to ~1.7e-15 per step for multi-atom
-    # systems (measured 4e-16 for 1 atom, 1.7e-15 for 3 atoms), not as a random walk.
+    # in every step, so the trace drifts by a few 1e-16 per step (measured:
+    # −4e-16), not as a random walk.
     steps_taken = (n_steps or 0) if gamma > 0 else 0
-    drift = 1e-12 + 2e-15 * steps_taken
+    drift = 1e-12 + 1e-15 * steps_taken
     assert torch.allclose(trace, torch.ones_like(trace), rtol=0, atol=drift)
     assert torch.allclose(rho, rho.mH, rtol=0, atol=1e-12)
     # eigvalsh reads one triangle only; Hermiticity was asserted just above

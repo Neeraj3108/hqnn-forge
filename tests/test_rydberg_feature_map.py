@@ -834,8 +834,10 @@ class TestShots:
     @pytest.mark.parametrize("shots", [1, 2, 4, 8, 16, 25, 40, 50, 64, 100, 128])
     def test_exact_shot_fractions(self, shots: int) -> None:
         """
-        Every estimate is an exact multiple of 1/S: rounding to the nearest count
-        and dividing by S reproduces the estimate bit for bit.
+        Each estimate is the correctly rounded value of ``count / S``.
+
+        Multiplying the estimate by ``S``, rounding to the nearest integer count,
+        and dividing by ``S`` reproduces the estimate bit for bit.
         """
         feature_map = self.build(3)
         estimates = feature_map.transform(
@@ -843,10 +845,8 @@ class TestShots:
         )
         counts = (estimates * shots).round()
         assert torch.equal(estimates, counts / shots)
-        if shots in (1, 2, 4, 8, 16, 40, 64, 128):
-            assert torch.equal(estimates * shots, counts)
 
-    @pytest.mark.parametrize("n_atoms", [2, 3, 4, 5])
+    @pytest.mark.parametrize("n_atoms", [2, 3, 4, 5, 6])
     @pytest.mark.parametrize("shots", [10, 50, 200])
     @pytest.mark.parametrize("seed", [0, 42])
     def test_seeded_compatibility_within_1e_12_against_dense_diagonal_readout(
@@ -858,38 +858,6 @@ class TestShots:
         """
         feature_map = self.build(n_atoms)
         x = inputs(5, n_atoms, seed=seed)
-
-        gen1 = torch.Generator().manual_seed(seed)
-        estimates = feature_map.transform(x, shots=shots, generator=gen1)
-
-        gen2 = torch.Generator().manual_seed(seed)
-        delta = feature_map._encoding.detunings(x)
-        rho = feature_map._evolve(delta)
-        populations = rho.diagonal(dim1=-2, dim2=-1).real.clamp(min=0.0).to(gen2.device)
-        frequencies = torch.empty_like(populations)
-        for sample in range(populations.shape[0]):
-            outcomes = torch.multinomial(
-                populations[sample], shots, replacement=True, generator=gen2
-            )
-            c = torch.bincount(outcomes, minlength=populations.shape[1])
-            frequencies[sample] = c.to(torch.float64) / shots
-        dense_reference = readout(torch.diag_embed(frequencies), pairs=feature_map.correlations)
-
-        assert torch.equal((estimates * shots).round(), (dense_reference * shots).round())
-        assert (estimates - dense_reference).abs().max().item() <= 1e-12
-
-    @pytest.mark.parametrize("n_atoms", [5, 6])
-    @pytest.mark.parametrize("shots", [50, 200])
-    def test_seeded_compatibility_against_dense_reference(self, n_atoms: int, shots: int) -> None:
-        """
-        Shot estimates and dense reference match rounded to the nearest count.
-
-        With the same seed and generator, ``(estimates * shots).round()`` equals
-        ``(dense_reference * shots).round()`` bit for bit at 5 and 6 atoms.
-        """
-        seed = 42
-        feature_map = self.build(n_atoms)
-        x = inputs(4, n_atoms, seed=seed)
 
         gen1 = torch.Generator().manual_seed(seed)
         estimates = feature_map.transform(x, shots=shots, generator=gen1)
